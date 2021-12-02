@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace AdventOfCode2021
@@ -30,15 +31,7 @@ namespace AdventOfCode2021
 
         private static List<string> ReadFileLineByLine(string path)
         {
-            var entries = new List<string>();
-
-            // Read the file and display it line by line.  
-            foreach (string line in File.ReadLines(path))
-            {
-                entries.Add(line);
-            }
-
-            return entries;
+            return File.ReadLines(path).ToList();
         }
 
         private static void RunDay1()
@@ -62,25 +55,15 @@ namespace AdventOfCode2021
 
             for (int i = 0; i < lines.Count; i++)
             {
-                if (isPart1)
-                {
-                    if (prevRecord != 0 && lines[i] > prevRecord)
-                        counter++;
+                if (i == lines.Count - 2 && !isPart1)
+                    break;
 
-                    prevRecord = lines[i];
-                }
-                else
-                {
-                    if (i == lines.Count - 2)
-                        break;
+                int total = isPart1 ? lines[i] : lines[i] + lines[i + 1] + lines[i + 2];
 
-                    var total = lines[i] + lines[i + 1] + lines[i + 2];
+                if (prevRecord != 0 && total > prevRecord)
+                    counter++;
 
-                    if (prevRecord != 0 && total > prevRecord)
-                        counter++;
-
-                    prevRecord = total;
-                }                
+                prevRecord = total;                            
             }
 
             Console.Write("Result: There are " + counter + " measurements larger than previous.");
@@ -110,19 +93,18 @@ namespace AdventOfCode2021
 
             for (int i = 0; i < lines.Count; i++)
             {
-                var numeric = Regex.Match(lines[i], @"\d+").Value;
-                var change = int.Parse(numeric);
+                var numeric = int.Parse(Regex.Match(lines[i], @"\d+").Value);
 
                 if (lines[i].StartsWith("forward"))
                 {
-                    position += change;
+                    position += numeric;
                     if (!isPart1)
-                        depth += aim * change;
+                        depth += aim * numeric;
                 }
                 else if (lines[i].StartsWith("down"))
-                    aim += change;
+                    aim += numeric;
                 else if (lines[i].StartsWith("up"))
-                    aim -= change;                
+                    aim -= numeric;                
             }
 
             if (isPart1)
