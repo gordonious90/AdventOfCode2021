@@ -7,10 +7,12 @@ namespace AdventOfCode2021
 {
     class Program
     {
-        const string _folder = @"C:\Users\anrel\Documents\Advent of Code\AdventOfCode2021\AdventOfCode2021\";
+        private static string _folder;
 
         static void Main(string[] args)
         {
+            _folder = System.IO.Path.GetFullPath(@"..\..\..\");
+
             Console.WriteLine("Welcome to Gordy's Advent of Code 2021!");
             Console.WriteLine("==================================");
             Console.WriteLine("Which day should I run?");
@@ -23,29 +25,15 @@ namespace AdventOfCode2021
                 case "2":
                     RunDay2();
                     break;
-
             }
         }
 
-        private static List<int> ReadFileLineByLine(string path)
+        private static List<string> ReadFileLineByLine(string path)
         {
-            var entries = new System.Collections.Generic.List<int>();
+            var entries = new List<string>();
 
             // Read the file and display it line by line.  
-            foreach (string line in System.IO.File.ReadLines(path))
-            {
-                entries.Add(int.Parse(line));
-            }
-
-            return entries;
-        }
-
-        private static List<string> ReadFileLineByLineString(string path)
-        {
-            var entries = new System.Collections.Generic.List<string>();
-
-            // Read the file and display it line by line.  
-            foreach (string line in System.IO.File.ReadLines(path))
+            foreach (string line in File.ReadLines(path))
             {
                 entries.Add(line);
             }
@@ -66,7 +54,7 @@ namespace AdventOfCode2021
                     break;
             }
 
-            var lines = ReadFileLineByLine(_folder + "Adv1.txt");
+            var lines = ReadFileLineByLine(_folder + "Adv1.txt").ConvertAll(int.Parse);
 
             var counter = 0;
 
@@ -114,7 +102,7 @@ namespace AdventOfCode2021
                     break;
             }
 
-            var lines = ReadFileLineByLineString(_folder + "Adv2.txt");
+            var lines = ReadFileLineByLine(_folder + "Adv2.txt");
 
             int depth = 0;
             int position = 0;
