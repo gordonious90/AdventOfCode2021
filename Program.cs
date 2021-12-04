@@ -29,6 +29,9 @@ namespace AdventOfCode2021
                 case "3":
                     RunDay3();
                     break;
+                case "4":
+                    RunDay4();
+                    break;
             }
         }
 
@@ -37,6 +40,7 @@ namespace AdventOfCode2021
             return File.ReadLines(path).ToList();
         }
 
+        #region prevDays
         private static void RunDay1()
         {
             Console.WriteLine("Part 1 or Part 2?");
@@ -219,5 +223,156 @@ namespace AdventOfCode2021
 
             return newCandidates.First();
         }
+
+        #endregion
+
+        private static void RunDay4()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool isPart1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    isPart1 = false;
+                    break;
+            }
+
+            var lines = ReadFileLineByLine(_folder + "Adv4.txt");
+            var drawOrder = lines[0].Split(',').ToList().ConvertAll(int.Parse);
+            var cards = GetScoreCards(lines);
+            var curResults = new List<int>();
+            BingoCard finishedCard = null;
+
+            if (isPart1)
+                finishedCard = cards[GetFastestCardId(drawOrder, cards, out curResults)];
+            else
+            {
+                var curCards = cards;
+                int cardFinishIndex = 0;
+
+                while (curCards.Count > 0)
+                {
+                    if (curCards.Count == 1)
+                        finishedCard = curCards.First();
+
+                    cardFinishIndex = GetFastestCardId(drawOrder, curCards, out curResults);
+
+                    curCards.RemoveAt(cardFinishIndex);
+                }
+            }
+            
+            var output = string.Format("Correct Answer = {0}", GetAnswer(finishedCard.Numbers, curResults));
+
+            Console.Write(output);
+        }
+
+        private static List<BingoCard> GetScoreCards(List<string> lines)
+        {
+            var cards = new List<BingoCard>();
+
+            var card = new BingoCard { Numbers = new List<BingoNumber>() };
+            int yCounter = 0;
+
+            for (int i = 2; i < lines.Count; i++)
+            {
+                if (string.IsNullOrEmpty(lines[i]))
+                {
+                    yCounter = 0;
+                    cards.Add(card);
+                    card = new BingoCard { Numbers = new List<BingoNumber>() };
+                    continue;
+                }
+
+                var vals = Regex.Split(lines[i], @"\D+").Where(val => !string.IsNullOrEmpty(val)).ToArray();
+
+                var numbers = Array.ConvertAll(vals, s => int.Parse(s));
+
+                for (int x = 0; x < numbers.Length; x++)
+                    card.Numbers.Add(new BingoNumber { PositionX = x, PositionY = yCounter, Value = numbers[x] });
+
+                yCounter++;                
+            }
+
+            cards.Add(card);
+
+            return cards;
+        }
+
+        private static int GetFastestCardId(List<int> drawOrder, List<BingoCard> cards, out List<int> curResults)
+        {
+            curResults = new List<int>();
+
+            for (int i = 0; i < drawOrder.Count; i++)
+            {
+                curResults.Add(drawOrder[i]);
+
+                //No point checking for bingo before 5 results
+                if (curResults.Count < 5)
+                    continue;
+
+                for (int x = 0; x < cards.Count; x++)
+                {
+                    if (CheckForBingo(cards[x].Numbers, curResults))
+                        return x;                    
+                }
+            }
+
+            throw new Exception("No bingo result for any card");
+        }
+
+        private static bool CheckForBingo(List<BingoNumber> numbers, List<int> results)
+        {
+            var diagonalResults = new List<BingoNumber>();
+            var reverseDiagonalResults = new List<BingoNumber>();
+
+            for (int i = 0; i < 5; i++)
+            {
+                var xResults = numbers.Where(num => num.PositionX == i).ToList();
+                var yResults = numbers.Where(num => num.PositionY == i).ToList();
+                diagonalResults.Add(numbers.FirstOrDefault(num => num.PositionX == i && num.PositionY == i));
+                reverseDiagonalResults.Add(numbers.FirstOrDefault(num => num.PositionX == 4-i && num.PositionY == 4-i));
+
+                if (CheckResults(xResults, results) || CheckResults(yResults, results))
+                    return true;
+            }
+
+            if (CheckResults(diagonalResults, results) || CheckResults(reverseDiagonalResults, results))
+                return true;
+
+            return false;
+        }
+
+        private static bool CheckResults(List<BingoNumber> numbers, List<int> results)
+        {
+            for (int i = 0; i < numbers.Count; i++)
+            {
+                if (!results.Any(r => r == numbers[i].Value))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static int GetAnswer(List<BingoNumber> numbers, List<int> results)
+        {
+            var unusedNumbers = numbers.Select(num => num.Value).Except(results).ToList();
+            var total = unusedNumbers.Take(unusedNumbers.Count).Sum();
+            return total * results.Last();
+        }
+
+    }
+
+    public class BingoCard
+    {
+        public List<BingoNumber> Numbers;
+    }
+
+    public class BingoNumber
+    {
+        public int PositionX;
+        public int PositionY;
+        public int Value;
     }
 }
