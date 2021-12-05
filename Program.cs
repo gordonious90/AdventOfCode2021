@@ -32,6 +32,9 @@ namespace AdventOfCode2021
                 case "4":
                     RunDay4();
                     break;
+                case "5":
+                    RunDay5();
+                    break;
             }
         }
 
@@ -224,7 +227,7 @@ namespace AdventOfCode2021
             return newCandidates.First();
         }
 
-        #endregion
+        
 
         private static void RunDay4()
         {
@@ -362,6 +365,121 @@ namespace AdventOfCode2021
             return total * results.Last();
         }
 
+        #endregion
+
+        private static void RunDay5()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool isPart1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    isPart1 = false;
+                    break;
+            }
+
+            List<VentLine> ventLines = new List<VentLine>();
+
+            var lines = ReadFileLineByLine(_folder + "Adv5.txt");
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var vals = Regex.Split(lines[i], @"\D+").Where(val => !string.IsNullOrEmpty(val)).ToArray();
+                var numbers = Array.ConvertAll(vals, s => int.Parse(s));
+
+                if (!IsValidCoordinate(numbers[0], numbers[1], numbers[2], numbers[3], !isPart1))
+                        continue;
+
+                var ventLine = new VentLine { StartX = numbers[0], StartY = numbers[1], FinishX = numbers[2], FinishY = numbers[3] };
+
+                ventLines.Add(ventLine);
+            }
+
+            List<CoordinateCheck> coordinates = new List<CoordinateCheck>();
+
+            for (int i = 0; i < ventLines.Count; i++)
+            {
+                coordinates = GetCoordinates(ventLines[i], coordinates);
+            }
+
+            var dangers = coordinates.Where(co => co.Count >= 2).ToList();
+
+            var output = string.Format("Dangers = {0}\n", dangers.Count());
+                
+            Console.Write(output);
+        }
+
+        private static bool IsValidCoordinate(int startX, int startY, int finishX, int finishY, bool countDiagonals = false)
+        {
+            if (startX == finishX || startY == finishY)
+                return true;
+
+            if (!countDiagonals)
+                return false;
+
+            return IsDiagonalCoordinate(startX, startY, finishX, finishY);
+        }
+
+        private static bool IsDiagonalCoordinate(int startX, int startY, int finishX, int finishY)
+        {
+            var xDif = Math.Abs(finishX - startX);
+            var yDif = Math.Abs(finishY - startY);
+
+            if (xDif == yDif)
+                return true;
+
+            return false;
+        }
+
+        private static List<CoordinateCheck> GetCoordinates(VentLine ventLine, List<CoordinateCheck> coords)
+        {
+            var xInc = ventLine.StartX < ventLine.FinishX ? 1 : -1;
+            var yInc = ventLine.StartY < ventLine.FinishY ? 1 : -1;
+
+            xInc = ventLine.StartX == ventLine.FinishX ? 0 : xInc;
+            yInc = ventLine.StartY == ventLine.FinishY ? 0 : yInc; 
+
+            int xCounter = ventLine.StartX;
+            int yCounter = ventLine.StartY;
+
+            int xGoal = ventLine.FinishX;
+            int yGoal = ventLine.FinishY; 
+
+            while (xCounter != xGoal || yCounter != yGoal)
+            {
+                if (coords.Exists(co => co.X == xCounter && co.Y == yCounter))
+                    coords.FirstOrDefault(co => co.X == xCounter && co.Y == yCounter).Count++;
+                else
+                    coords.Add(new CoordinateCheck { X = xCounter, Y = yCounter, Count = 1 });
+
+                xCounter += xInc; 
+                yCounter += yInc; 
+            }
+
+            if (coords.Any(co => co.X == xCounter && co.Y == yCounter))
+                coords.FirstOrDefault(co => co.X == xCounter && co.Y == yCounter).Count++;
+            else
+                coords.Add(new CoordinateCheck { X = xCounter, Y = yCounter, Count = 1 });
+
+            return coords;
+        }
+    }
+
+    public class VentLine
+    {
+        public int StartX;
+        public int StartY;
+        public int FinishX;
+        public int FinishY;
+    }
+
+    public class CoordinateCheck
+    {
+        public int X;
+        public int Y;
+        public int Count;
     }
 
     public class BingoCard
