@@ -520,25 +520,6 @@ namespace AdventOfCode2021
 
             Console.Write(string.Format("Total Fish now: {0}", ages.Sum()));
         }
-
-        private static int[] AppendNewFish(int[] curFish, int newVal)
-        {
-            int[] newFish = new int[curFish.Length + 1];
-
-            for (int i = 0; i < newFish.Length; i++)
-            {
-                if (i == curFish.Length)
-                {
-                    newFish[i] = newVal;
-                }
-                else
-                {
-                    newFish[i] = curFish[i];
-                }
-            }
-
-            return newFish;
-        }
     }
 
     public class VentLine
