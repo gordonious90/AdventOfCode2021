@@ -35,6 +35,9 @@ namespace AdventOfCode2021
                 case "5":
                     RunDay5();
                     break;
+                case "6":
+                    RunDay6();
+                    break;
             }
         }
 
@@ -363,9 +366,7 @@ namespace AdventOfCode2021
             var unusedNumbers = numbers.Select(num => num.Value).Except(results).ToList();
             var total = unusedNumbers.Take(unusedNumbers.Count).Sum();
             return total * results.Last();
-        }
-
-        #endregion
+        }        
 
         private static void RunDay5()
         {
@@ -464,6 +465,79 @@ namespace AdventOfCode2021
                 coords.Add(new CoordinateCheck { X = xCounter, Y = yCounter, Count = 1 });
 
             return coords;
+        }
+
+        #endregion
+
+        private static void RunDay6()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool isPart1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    isPart1 = false;
+                    break;
+            }
+
+            var lines = ReadFileLineByLine(_folder + "Adv6.txt");
+
+            var fish = Array.ConvertAll(lines[0].Split(','), int.Parse);
+
+            int numberOfDays = 80;
+
+            if (!isPart1)
+                numberOfDays = 256;
+
+            var ages = new long[9];
+
+            for (int i = 0; i < fish.Length; i++)
+            {
+                ages[fish[i]]++;
+            }
+
+            for (int i = 1; i <= numberOfDays; i++)
+            {
+                var newAges = new long[9];
+
+                for (int x = 0; x <ages.Length; x++) {
+                    if (x == 8)
+                        break;
+
+                    if (x == 0)
+                    {
+                        newAges[6] = ages[0];
+                        newAges[8] = ages[0];
+                    }
+
+                    newAges[x] += ages[x + 1];
+                }
+
+                ages = newAges;
+            }
+
+            Console.Write(string.Format("Total Fish now: {0}", ages.Sum()));
+        }
+
+        private static int[] AppendNewFish(int[] curFish, int newVal)
+        {
+            int[] newFish = new int[curFish.Length + 1];
+
+            for (int i = 0; i < newFish.Length; i++)
+            {
+                if (i == curFish.Length)
+                {
+                    newFish[i] = newVal;
+                }
+                else
+                {
+                    newFish[i] = curFish[i];
+                }
+            }
+
+            return newFish;
         }
     }
 
