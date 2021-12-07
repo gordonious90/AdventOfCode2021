@@ -38,6 +38,9 @@ namespace AdventOfCode2021
                 case "6":
                     RunDay6();
                     break;
+                case "7":
+                    RunDay7();
+                    break;
             }
         }
 
@@ -465,9 +468,7 @@ namespace AdventOfCode2021
                 coords.Add(new CoordinateCheck { X = xCounter, Y = yCounter, Count = 1 });
 
             return coords;
-        }
-
-        #endregion
+        }        
 
         private static void RunDay6()
         {
@@ -519,6 +520,56 @@ namespace AdventOfCode2021
             }
 
             Console.Write(string.Format("Total Fish now: {0}", ages.Sum()));
+        }
+
+        #endregion
+
+        private static void RunDay7()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool part1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    part1 = false;
+                    break;
+            }
+
+            var lines = ReadFileLineByLine(_folder + "Adv7.txt");
+
+            var crabs = Array.ConvertAll(lines[0].Split(','), int.Parse).OrderBy(c => c).ToArray();
+
+            var minVal = crabs.First();
+            var maxVal = crabs.Last();
+            int? shortestPos = null;
+            int? shortestFuel = null;
+
+            for (int i = minVal; i < maxVal; i++)
+            {
+                int fuelCounter = 0;
+
+                for (int x = 0; x < crabs.Length; x++)
+                {
+                    if (part1)
+                        fuelCounter += Math.Abs(crabs[x] - i);
+                    else                    
+                        fuelCounter += (Math.Abs(crabs[x] - i) * (Math.Abs(crabs[x] - i) + 1)) / 2;                                 
+                }
+                                    
+                if (shortestFuel == null || fuelCounter < shortestFuel)
+                {
+                    shortestFuel = fuelCounter;
+                    shortestPos = i;
+                }                    
+            }
+
+            if (shortestPos == null || shortestFuel == null)
+                throw new Exception();
+
+            var output = string.Format("Total Fuel: {0}, Most Efficient Position {1}", shortestFuel, shortestPos);
+            Console.Write(output);
         }
     }
 
