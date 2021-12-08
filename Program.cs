@@ -41,6 +41,9 @@ namespace AdventOfCode2021
                 case "7":
                     RunDay7();
                     break;
+                case "8":
+                    RunDay8();
+                    break;
             }
         }
 
@@ -522,7 +525,7 @@ namespace AdventOfCode2021
             Console.Write(string.Format("Total Fish now: {0}", ages.Sum()));
         }
 
-        #endregion
+        
 
         private static void RunDay7()
         {
@@ -571,6 +574,146 @@ namespace AdventOfCode2021
             var output = string.Format("Total Fuel: {0}, Most Efficient Position {1}", shortestFuel, shortestPos);
             Console.Write(output);
         }
+
+        #endregion
+
+        private static void RunDay8()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool part1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    part1 = false;
+                    break;
+            }
+
+            var lines = ReadFileLineByLine(_folder + "Adv8.txt");
+
+            int sumTotal = 0;
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var split = lines[i].Split('|');
+                var signalWires = split[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var digitCodes = split[1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var wireNumbers = new List<WireNumber>();
+
+                for (int x = 0; x < signalWires.Length; x++)
+                {
+                    var wireNumber = new WireNumber { SignalWires = signalWires[x].ToArray() };
+
+                    if (signalWires[x].Length == 2)
+                        wireNumber.DisplayNumber = 1;
+
+                    if (signalWires[x].Length == 3)
+                        wireNumber.DisplayNumber = 7;
+
+                    if (signalWires[x].Length == 4)
+                        wireNumber.DisplayNumber = 4;
+
+                    if (signalWires[x].Length == 7)
+                        wireNumber.DisplayNumber = 8;
+
+                    wireNumbers.Add(wireNumber);
+                }
+
+                for (int x = 0; x < wireNumbers.Count; x++)
+                {
+                    var wireNumber = wireNumbers[x];
+
+                    if (wireNumber.DisplayNumber != null)
+                        continue;
+
+                    if (wireNumber.SignalWires.Length == 5)
+                    {
+                        var oneWires = wireNumbers.First(wn => wn.DisplayNumber == 1).SignalWires;
+                        var count = ArrayMatchingCount(wireNumber.SignalWires, oneWires);
+
+                        if (count == oneWires.Count())
+                        {
+                            wireNumber.DisplayNumber = 3;
+                            continue;
+                        }
+                            
+                        var fourWires = wireNumbers.First(wn => wn.DisplayNumber == 4).SignalWires;
+                        count = ArrayMatchingCount(wireNumber.SignalWires, fourWires);
+
+                        if (count == 2)
+                            wireNumber.DisplayNumber = 2;
+                        else if (count == 3)
+                            wireNumber.DisplayNumber = 5;
+                    }
+                    else if (wireNumber.SignalWires.Length == 6)
+                    {
+                        var sevenWires = wireNumbers.First(wn => wn.DisplayNumber == 7).SignalWires;
+                        var count = ArrayMatchingCount(wireNumber.SignalWires, sevenWires);
+
+                        if (count < sevenWires.Count())
+                        {
+                            wireNumber.DisplayNumber = 6;
+                            continue;
+                        }
+
+                        var fourWires = wireNumbers.First(wn => wn.DisplayNumber == 4).SignalWires;
+                        count = ArrayMatchingCount(wireNumber.SignalWires, fourWires);
+
+                        if (count == fourWires.Count())
+                        {
+                            wireNumber.DisplayNumber = 9;
+                            continue;
+                        }
+
+                        wireNumber.DisplayNumber = 0;
+                    }
+                }
+
+                var numberString = "";
+
+                for (int x = 0; x < digitCodes.Length; x++)
+                {
+                    var arr = digitCodes[x].ToArray();
+
+                    for (int y = 0; y < wireNumbers.Count; y++)
+                    {
+                        if (MatchingArray(arr, wireNumbers[y].SignalWires))
+                            numberString += wireNumbers[y].DisplayNumber.ToString();
+                    }
+                }
+
+                sumTotal += int.Parse(numberString);
+            }
+
+            Console.Write("Sum Total: " + sumTotal);
+        }
+
+        private static int ArrayMatchingCount<T>(T[] arr1, T[] arr2) 
+        {
+            int counter = 0;
+            for (int i = 0; i < arr1.Length; i++)
+            {
+                if (arr2.Contains(arr1[i]))
+                    counter++;
+            }
+
+            return counter;
+        }
+
+        private static bool MatchingArray<T>(T[] arr1, T[] arr2)
+        {
+            if (arr1.Length != arr2.Length)
+                return false;
+
+            for (int i = 0; i < arr1.Length; i++)
+            {
+                if (!arr2.Contains(arr1[i]))
+                    return false;
+            }
+
+            return true;
+        }
     }
 
     public class VentLine
@@ -598,5 +741,11 @@ namespace AdventOfCode2021
         public int PositionX;
         public int PositionY;
         public int Value;
+    }
+
+    public class WireNumber
+    {
+        public int? DisplayNumber;
+        public char[] SignalWires;
     }
 }
