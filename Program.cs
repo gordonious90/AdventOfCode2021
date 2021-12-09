@@ -44,6 +44,9 @@ namespace AdventOfCode2021
                 case "8":
                     RunDay8();
                     break;
+                case "9":
+                    RunDay9();
+                    break;
             }
         }
 
@@ -573,9 +576,7 @@ namespace AdventOfCode2021
 
             var output = string.Format("Total Fuel: {0}, Most Efficient Position {1}", shortestFuel, shortestPos);
             Console.Write(output);
-        }
-
-        #endregion
+        }        
 
         private static void RunDay8()
         {
@@ -713,6 +714,159 @@ namespace AdventOfCode2021
             }
 
             return true;
+        }
+
+        #endregion
+
+        private static void RunDay9()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool part1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    part1 = false;
+                    break;
+            }
+
+            var map = ReadFileLineByLine(_folder + "Adv9.txt");
+
+            var maxY = map.Count - 1;
+            var maxX = map.First().Length - 1;
+            var lowestValues = new List<int>();
+            var basinSizes = new List<int>();
+
+            for (int y = 0; y <= maxY; y++)
+            {
+                for (int x = 0; x <= maxX; x++)
+                {
+                    var curDigit = (int)Char.GetNumericValue(map[y][x]);
+                    if (!IsValueLowest(map, curDigit, y, x, maxX, maxY))
+                        continue;
+                    
+                    lowestValues.Add(curDigit + 1);
+                    
+                    if (part1)
+                        continue;
+
+                    basinSizes.Add(GetBasinSize(map, x, y, maxX, maxY));
+                }
+            }
+
+            var outPut = "Lowest Value Sum: " + lowestValues.Sum();
+
+            if (!part1)
+            {
+                for (int i = 0; i < basinSizes.Count; i++)
+                {
+                    outPut += "\nBasin Size: " + basinSizes[i];
+                }
+
+                outPut += "\nAnswer: " + basinSizes.OrderByDescending(bs => bs).Take(3).Aggregate(1, (a, b) => a * b);
+            }                
+
+            Console.Write(outPut);
+        }
+
+        private static bool IsValueLowest(List<string> map, int curVal, int curY, int curX, int maxX, int maxY)
+        {
+            var startX = curX == 0 ? 0 : curX - 1;
+            var endX = curX == maxX ? maxX : curX + 1;
+
+            for (int x = startX; x <= endX; x++)
+            {
+                if (x == curX)
+                    continue;
+
+                var curDigit = (int)Char.GetNumericValue(map[curY][x]);
+
+                if (curDigit <= curVal)
+                    return false;
+            }
+            
+            var startY = curY == 0 ? 0 : curY - 1;
+            var endY = curY == maxY ? maxY : curY + 1;
+
+            for (int y = startY; y <= endY; y++)
+            {   
+                if (y == curY)
+                    continue;
+
+                var curDigit = (int)Char.GetNumericValue(map[y][curX]);
+
+                if (curDigit <= curVal)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static int GetBasinSize(List<string> map, int initialX, int initialY, int maxX, int maxY)
+        {
+            List<int[]> coordsToCheck = new List<int[]>();
+            List<int[]> coordsChecked = new List<int[]>();
+
+            coordsToCheck.Add(new int[] { initialX, initialY });
+
+            int basinSize = 1;
+
+            while(coordsToCheck.Count > 0)
+            {
+                var curX  = coordsToCheck.FirstOrDefault()[0];
+                var curY = coordsToCheck.FirstOrDefault()[1];
+
+                var startX = curX == 0 ? 0 : curX - 1;
+                var endX = curX == maxX ? maxX : curX + 1;
+
+                for (int x = startX; x <= endX; x++)
+                {
+                    if (x == curX || CoordsExist(x, curY, coordsChecked) || CoordsExist(x, curY, coordsToCheck))
+                        continue;
+
+                    var curDigit = (int)Char.GetNumericValue(map[curY][x]);
+
+                    if (curDigit == 9)
+                        continue;
+
+                    coordsToCheck.Add(new int[] { x, curY });
+                    basinSize++;
+                }
+
+                var startY = curY == 0 ? 0 : curY - 1;
+                var endY = curY == maxY ? maxY : curY + 1;
+
+                for (int y = startY; y <= endY; y++)
+                {
+                    if (y == curY || CoordsExist(curX, y, coordsChecked) || CoordsExist(curX, y, coordsToCheck))
+                        continue;
+
+                    var curDigit = (int)Char.GetNumericValue(map[y][curX]);
+
+                    if (curDigit == 9)
+                        continue;
+
+                    coordsToCheck.Add(new int[] { curX, y });
+                    basinSize++;
+                }
+
+                coordsChecked.Add(coordsToCheck.First());
+                coordsToCheck.Remove(coordsToCheck.First());
+            }
+
+            return basinSize;
+        }
+
+        private static bool CoordsExist(int x, int y, List<int[]> coordsList)
+        {
+            for (int i = 0; i < coordsList.Count; i++)
+            {
+                if (coordsList[i][0] == x && coordsList[i][1] == y)
+                    return true;
+            }
+
+            return false;
         }
     }
 
