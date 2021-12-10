@@ -47,6 +47,9 @@ namespace AdventOfCode2021
                 case "9":
                     RunDay9();
                     break;
+                case "10":
+                    RunDay10();
+                    break;
             }
         }
 
@@ -716,7 +719,7 @@ namespace AdventOfCode2021
             return true;
         }
 
-        #endregion
+        
 
         private static void RunDay9()
         {
@@ -867,6 +870,186 @@ namespace AdventOfCode2021
             }
 
             return false;
+        }
+
+        #endregion
+
+        private static void RunDay10()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool part1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    part1 = false;
+                    break;
+            }
+
+            var lines = ReadFileLineByLine(_folder + "Adv10.txt");
+            List<char> illegalChars = new List<char>();
+            List<long> incompleteScores = new List<long>();
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var illegalChar = GetIllegalCharacterFromLine(lines[i]);
+
+                if (illegalChar != null)
+                    illegalChars.Add(illegalChar.Value);
+
+                if (illegalChar == null && !part1)
+                    incompleteScores.Add(GetIncompleteScore(lines[i]));
+            }
+
+            var output = "Score: " + GetAnswerFromIllegalChars(illegalChars);
+
+            if (!part1)
+                output += "\nIncomplete Socre: " + incompleteScores.OrderBy(i => i).ToList()[incompleteScores.Count / 2];
+            
+            Console.Write(output);
+        }
+
+        private static char? GetIllegalCharacterFromLine(string line)
+        {
+            var remainingLine = line;            
+            var matchingPairs = GetMatchingPairs();
+
+            while (remainingLine.Length > 0)
+            {
+                var openingChar = remainingLine[0];
+                var openingIndex = 0;
+                var expectedClosingChar = matchingPairs.First(mp => mp.Key == openingChar).Value;
+                bool matchFound = false;
+
+                for (int i = 1; i <remainingLine.Length; i++)
+                {
+                    if (remainingLine[i] == expectedClosingChar)
+                    {
+                        remainingLine = remainingLine.Remove(i,1);
+                        remainingLine = remainingLine.Remove(openingIndex,1);
+                        matchFound = true;
+                        break;
+                    }
+                    else if (matchingPairs.Any(mp => mp.Key == remainingLine[i]))
+                    {
+                        openingChar = remainingLine[i];
+                        openingIndex = i;
+                        expectedClosingChar = matchingPairs.First(mp => mp.Key == openingChar).Value;
+                    }
+                    else if (matchingPairs.Any(mp => mp.Value == remainingLine[i]))
+                    {
+                        return remainingLine[i]; //Corrupt char
+                    }                    
+                }
+
+                if (!matchFound)
+                    return null; //Incomplete line
+            }
+
+            return null; // Non-corrupt line
+        }
+
+        private static long GetIncompleteScore(string line)
+        {
+            var remainingLine = line;
+            var matchingPairs = GetMatchingPairs();
+            long incompleteScore = 0;
+
+            while (remainingLine.Length > 0)
+            {
+                var openingChar = remainingLine[0];
+                var openingIndex = 0;
+                var expectedClosingChar = matchingPairs.First(mp => mp.Key == openingChar).Value;
+                bool matchFound = false;
+
+                for (int i = 1; i < remainingLine.Length; i++)
+                {
+                    if (remainingLine[i] == expectedClosingChar)
+                    {
+                        remainingLine = remainingLine.Remove(i, 1);
+                        remainingLine = remainingLine.Remove(openingIndex, 1);
+                        matchFound = true;
+                        break;
+                    }
+                    else if (matchingPairs.Any(mp => mp.Key == remainingLine[i]))
+                    {
+                        openingChar = remainingLine[i];
+                        openingIndex = i;
+                        expectedClosingChar = matchingPairs.First(mp => mp.Key == openingChar).Value;
+                    }
+                    else if (matchingPairs.Any(mp => mp.Value == remainingLine[i]))
+                    {
+                        return 0; //Corrupt char
+                    }
+                }
+
+                if (!matchFound)
+                {
+                    incompleteScore *= 5;
+                    incompleteScore += GetIncompleteValue(expectedClosingChar);
+                    remainingLine = remainingLine.Remove(openingIndex, 1);
+                }
+                    
+            }
+
+            return incompleteScore;
+        }
+
+        private static int GetAnswerFromIllegalChars(List<char> chars)
+        {
+            int score = 0;
+
+            for (int i = 0; i < chars.Count; i++)
+            {
+                switch (chars[i])
+                {
+                    case ')':
+                        score += 3;
+                        break;
+                    case ']':
+                        score += 57;
+                        break;
+                    case '}':
+                        score += 1197;
+                        break;
+                    case '>':
+                        score += 25137;
+                        break;
+                    default:
+                        throw new Exception("Char doesn't exist in list" + chars[i].ToString());
+                }
+            }
+
+            return score;
+        }
+
+        private static int GetIncompleteValue(char incompleteChar)
+        {
+            switch (incompleteChar)
+            {
+                case ')':
+                    return 1;
+                case ']':
+                    return 2;
+                case '}':
+                    return 3;
+                case '>':
+                    return 4;
+            }
+
+            throw new Exception("Returning char that isn't in list: " + incompleteChar.ToString());
+        }
+
+        private static Dictionary<char,char> GetMatchingPairs()
+        {
+            var matchingPairs = new Dictionary<char, char>();
+            matchingPairs.Add('{', '}');
+            matchingPairs.Add('[', ']');
+            matchingPairs.Add('(', ')');
+            matchingPairs.Add('<', '>');
+
+            return matchingPairs;
         }
     }
 
