@@ -50,6 +50,9 @@ namespace AdventOfCode2021
                 case "10":
                     RunDay10();
                     break;
+                case "11":
+                    RunDay11();
+                    break;
             }
         }
 
@@ -872,7 +875,7 @@ namespace AdventOfCode2021
             return false;
         }
 
-        #endregion
+        
 
         private static void RunDay10()
         {
@@ -1051,6 +1054,148 @@ namespace AdventOfCode2021
 
             return matchingPairs;
         }
+
+        #endregion
+
+        private static void RunDay11()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool part1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    part1 = false;
+                    break;
+            }
+
+            var lines = ReadFileLineByLine(_folder + "Adv11.txt");
+
+            List<Octopus> octopi = new List<Octopus>();
+
+            for (int y = 0; y < lines.Count(); y++)
+                for (int x = 0; x < lines[y].Length; x++)
+                {
+                    var energy = lines[y][x];
+                    octopi.Add(new Octopus { X = x, Y = y, EnergyLevel = int.Parse(energy.ToString()), HasFlashed = false });
+                }
+
+            var output = "";
+
+            if (part1)
+            {
+                var flashes = GetFlashCount(octopi, 100);
+
+                output = "Flashes: " + flashes;
+            }
+            else
+            {
+                output += "\nSynch Step: " + GetSynchStep(octopi);
+            }
+            
+            Console.Write(output);
+
+        }
+
+        private static int GetFlashCount(List<Octopus> octopi, int numberOfSteps)
+        {
+            int flashCount = 0;
+
+            for (int i = 0; i < numberOfSteps; i++)
+            {
+                int newFlashes;
+                octopi = CommitStep(octopi, out newFlashes);
+                flashCount += newFlashes;
+            }
+
+            return flashCount;
+        }
+
+        private static int GetSynchStep(List<Octopus> octopi)
+        {
+            int iteration = 0;
+
+            bool synchFound = false;
+
+            while (!synchFound)
+            {
+                iteration++;
+
+                int newFlashes;
+                octopi = CommitStep(octopi, out newFlashes);
+
+                if (newFlashes == octopi.Count)
+                    return iteration;
+            }
+
+            return iteration;
+        }
+
+        private static List<Octopus> CommitStep(List<Octopus> octopi, out int flashes)
+        {
+            List<Octopus> remaining = new List<Octopus>(octopi);
+
+            var maxX = octopi.OrderByDescending(o => o.X).First().X;
+            var maxY = octopi.OrderByDescending(o => o.Y).First().Y;
+
+            while (remaining.Count > 0)
+            {
+                var flashers = new List<Octopus>();
+
+                var masterResult = octopi.First(o => o.X == remaining[0].X && o.Y == remaining[0].Y);
+                masterResult.EnergyLevel++;
+
+                if (masterResult.EnergyLevel > 9 && !masterResult.HasFlashed)
+                {
+                    flashers.Add(masterResult);
+                    masterResult.HasFlashed = true;
+                }
+
+                remaining.Remove(masterResult);
+
+                for (int i = 0; i < flashers.Count(); i++)                
+                    remaining.AddRange(GetAdjacentOctopi(octopi, flashers[i].X, flashers[i].Y, maxX, maxY));                
+            }
+
+            flashes = 0;
+
+            for (int i = 0; i < octopi.Count(); i++)
+            {
+                if (octopi[i].HasFlashed)
+                {
+                    octopi[i].EnergyLevel = 0;
+                    octopi[i].HasFlashed = false;
+                    flashes++;
+                }                    
+            }
+
+            return octopi;
+        }  
+        
+        private static List<Octopus> GetAdjacentOctopi(List<Octopus> grid, int curX, int curY, int maxX, int maxY)
+        {
+            var startX = curX == 0 ? 0 : curX - 1;
+            var endX = curX == maxX ? maxX : curX + 1;
+
+            var startY = curY == 0 ? 0 : curY - 1;
+            var endY = curY == maxY ? maxY : curY + 1;
+
+            var results = new List<Octopus>();
+
+            for (int y = startY; y <= endY; y++)
+            {
+                for (int x = startX; x <= endX; x++)
+                {
+                    if (x == curX && y == curY)
+                        continue;
+
+                    results.Add(grid.First(r => r.X == x && r.Y == y));
+                }
+            }
+
+            return results;
+        }
     }
 
     public class VentLine
@@ -1084,5 +1229,13 @@ namespace AdventOfCode2021
     {
         public int? DisplayNumber;
         public char[] SignalWires;
+    }
+
+    public class Octopus
+    {
+        public int X;
+        public int Y;
+        public int EnergyLevel;
+        public bool HasFlashed;
     }
 }
