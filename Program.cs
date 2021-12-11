@@ -1075,27 +1075,18 @@ namespace AdventOfCode2021
             List<Octopus> octopi = new List<Octopus>();
 
             for (int y = 0; y < lines.Count(); y++)
-                for (int x = 0; x < lines[y].Length; x++)
-                {
-                    var energy = lines[y][x];
-                    octopi.Add(new Octopus { X = x, Y = y, EnergyLevel = int.Parse(energy.ToString()), HasFlashed = false });
-                }
+                for (int x = 0; x < lines[y].Length; x++)                
+                    octopi.Add(new Octopus { X = x, Y = y, EnergyLevel = int.Parse(lines[y][x].ToString()), HasFlashed = false });                
 
             var output = "";
 
             if (part1)
-            {
-                var flashes = GetFlashCount(octopi, 100);
-
-                output = "Flashes: " + flashes;
-            }
-            else
-            {
+                output = "Flashes: " + GetFlashCount(octopi, 100);            
+            else            
                 output += "\nSynch Step: " + GetSynchStep(octopi);
-            }
+            
             
             Console.Write(output);
-
         }
 
         private static int GetFlashCount(List<Octopus> octopi, int numberOfSteps)
