@@ -9,6 +9,7 @@ namespace AdventOfCode2021
     class Program
     {
         private static string _folder;
+        private static List<Stack<Node>> _possiblePaths;
 
         static void Main(string[] args)
         {
@@ -52,6 +53,9 @@ namespace AdventOfCode2021
                     break;
                 case "11":
                     RunDay11();
+                    break;
+                case "12":
+                    RunDay12();
                     break;
             }
         }
@@ -1055,8 +1059,6 @@ namespace AdventOfCode2021
             return matchingPairs;
         }
 
-        #endregion
-
         private static void RunDay11()
         {
             Console.WriteLine("Part 1 or Part 2?");
@@ -1187,6 +1189,186 @@ namespace AdventOfCode2021
 
             return results;
         }
+
+        #endregion
+
+        private static void RunDay12()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool part1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    part1 = false;
+                    break;
+            }
+
+            var lines = ReadFileLineByLine(_folder + "Adv12.txt");
+
+            var nodes = GetCaveNodes(lines);
+
+            var routes = GetCaveRoutes(nodes, part1);
+
+            Console.Write("Path Count = " + routes.Count());
+
+            //foreach(LinkedList<Node> route in routes)
+            //{
+            //    PrintPath(route);
+            //    //for (int i = 0; i < route.Count(); i++)
+
+            //}
+        }
+     
+        private static Dictionary<Node, List<Node>> GetCaveNodes(List<string> lines)
+        {
+            var nodes = new Dictionary<Node, List<Node>>();
+
+            //First generate all cave nodes
+            for (int i = 0; i < lines.Count(); i++)
+            {
+                var entry = lines[i].Split('-');
+                
+                for (int x = 0; x < entry.Length; x++)
+                {
+                    if (!nodes.Keys.Any(n => n.Identifier == entry[x]))
+                    {
+                        var node = new Node
+                        {
+                            Identifier = entry[x]
+                        };
+
+                        node.Type = CaveType.Small;
+
+                        if (entry[x] == "start")
+                            node.Type = CaveType.Start;
+                        else if (entry[x] == "end")
+                            node.Type = CaveType.End;
+                        else if (Char.IsUpper(entry[x][0]))
+                            node.Type = CaveType.Big;
+
+                        nodes.Add(node, new List<Node>());
+                    }
+                }                
+            }
+
+            for (int i = 0; i < lines.Count(); i++)
+            {
+                var entry = lines[i].Split('-');
+
+                var entry1 = nodes.First(n => n.Key.Identifier == entry[0]);
+                var entry2 = nodes.First(n => n.Key.Identifier == entry[1]);
+
+                if (!entry1.Value.Exists(n => n == entry2.Key))
+                    entry1.Value.Add(entry2.Key);
+
+                if (!entry2.Value.Exists(n => n == entry1.Key))
+                    entry2.Value.Add(entry1.Key);
+            }
+
+            return nodes;
+        }
+
+        private static List<Stack<Node>> GetCaveRoutes(Dictionary<Node, List<Node>> allNodes, bool part1)
+        {
+            List<Stack<Node>> allRoutes = new List<Stack<Node>>();
+
+            var possiblePaths = new List<Stack<Node>>();
+            var curStack = new Stack<Node>();
+
+            curStack.Push(allNodes.First(n => n.Key.Type == CaveType.Start).Key);
+
+            if (part1)
+                GetAllPaths(allNodes, curStack, allNodes.First(n => n.Key.Type == CaveType.End).Key, possiblePaths);
+            else
+                GetAllPathsPart2(allNodes, curStack, allNodes.First(n => n.Key.Type == CaveType.End).Key, possiblePaths);
+
+            return possiblePaths;
+        }
+
+        private static void GetAllPaths(Dictionary<Node, List<Node>> allNodes, Stack<Node> visited, Node endNode, List<Stack<Node>> possiblePaths)
+        {
+            var nodes = allNodes.First(k => k.Key == visited.Peek()).Value;
+
+            for (int i = 0; i < nodes.Count(); i++)
+            {
+                if ((visited.Contains(nodes[i]) && nodes[i].Type == CaveType.Small) || nodes[i].Type == CaveType.Start)
+                    continue;
+
+                if (nodes[i] == endNode)
+                {
+                    visited.Push(nodes[i]);
+                    possiblePaths.Add(visited);
+                    PrintPath(visited);
+                    visited.Pop();
+                    break;
+                }
+            }
+
+            for (int i = 0; i < nodes.Count(); i++)
+            {
+                if ((visited.Contains(nodes[i]) && nodes[i].Type == CaveType.Small) || nodes[i].Type == CaveType.Start || nodes[i] == endNode)
+                    continue;
+
+                visited.Push(nodes[i]);
+                GetAllPaths(allNodes, visited, endNode, possiblePaths);
+                visited.Pop();
+            }
+        }
+
+        private static void GetAllPathsPart2(Dictionary<Node, List<Node>> allNodes, Stack<Node> visited, Node endNode, List<Stack<Node>> possiblePaths)
+        {
+            var nodes = allNodes.First(k => k.Key == visited.Peek()).Value;
+
+            for (int i = 0; i < nodes.Count(); i++)
+            {
+                var nodeMatch = visited.Where(n => n == nodes[i]);
+                var nodeMatching = visited.GroupBy(x => x).Where(n => n.Key.Type == CaveType.Small && n.Count() > 1).Select(y => y.Key).ToList();
+                if (nodes[i].Type == CaveType.Small && nodeMatch.Count() == 2)
+                    continue;
+                else if (nodes[i].Type == CaveType.Small && nodeMatch.Count() == 1 && nodeMatching.Count > 0)
+                    continue;
+
+                if (nodes[i].Type == CaveType.Start)
+                    continue;
+
+                if (nodes[i] == endNode)
+                {
+                    visited.Push(nodes[i]);
+                    possiblePaths.Add(visited);
+                    PrintPath(visited);
+                    visited.Pop();
+                    break;
+                }
+            }
+
+            for (int i = 0; i < nodes.Count(); i++)
+            {
+                var nodeMatch = visited.Where(n => n == nodes[i]);
+                var nodeMatching = visited.GroupBy(x => x).Where(n => n.Key.Type == CaveType.Small && n.Count() > 1).Select(y => y.Key).ToList();
+                if (nodes[i].Type == CaveType.Small && nodeMatch.Count() == 2)
+                    continue;
+                else if (nodes[i].Type == CaveType.Small && nodeMatch.Count() == 1 && nodeMatching.Count > 0)
+                    continue;
+
+                if (nodes[i].Type == CaveType.Start || nodes[i].Type == CaveType.End)
+                    continue;
+
+                visited.Push(nodes[i]);
+                GetAllPathsPart2(allNodes, visited, endNode, possiblePaths);
+                visited.Pop();
+            }
+        }
+
+        private static void PrintPath(Stack<Node> visited){
+            var output = "\n";
+
+            for (int i = visited.Count() - 1; i > -1; i--)
+                output += visited.ElementAt(i).Identifier + " -> ";
+
+            Console.Write(output);
+        }
     }
 
     public class VentLine
@@ -1228,5 +1410,20 @@ namespace AdventOfCode2021
         public int Y;
         public int EnergyLevel;
         public bool HasFlashed;
+    }
+
+    public class Node
+    {
+        public string Identifier;
+        //public List<Node> ConnectingNodes;
+        public CaveType Type;        
+    }
+
+    public enum CaveType
+    {
+        Big,
+        Small,
+        Start,
+        End
     }
 }
