@@ -57,6 +57,9 @@ namespace AdventOfCode2021
                 case "12":
                     RunDay12();
                     break;
+                case "13":
+                    RunDay13();
+                    break;
             }
         }
 
@@ -1190,7 +1193,7 @@ namespace AdventOfCode2021
             return results;
         }
 
-        #endregion
+        
 
         private static void RunDay12()
         {
@@ -1366,6 +1369,108 @@ namespace AdventOfCode2021
 
             for (int i = visited.Count() - 1; i > -1; i--)
                 output += visited.ElementAt(i).Identifier + " -> ";
+
+            Console.Write(output);
+        }
+
+        #endregion
+
+        private static void RunDay13()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool part1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    part1 = false;
+                    break;
+            }
+
+            var lines = ReadFileLineByLine(_folder + "Adv13.txt");
+
+            var foldInstructions = new List<string>();
+            var locations = new List<Tuple<int, int>>();
+
+            bool secondPart = false;
+
+            for (int i = 0; i < lines.Count(); i++)
+            {
+                if (string.IsNullOrEmpty(lines[i]))
+                {
+                    secondPart = true;
+                    continue;
+                }                    
+
+                if (secondPart)
+                    foldInstructions.Add(lines[i]);
+                else
+                    locations.Add(new Tuple<int, int>(int.Parse(lines[i].Split(',')[0]), int.Parse(lines[i].Split(',')[1])));
+            }
+
+            int instructionCount = 1;
+
+            if (!part1)
+                instructionCount = foldInstructions.Count();
+
+            for(int i = 0; i < instructionCount; i++)            
+                locations = MakeFold(locations, foldInstructions[i]);            
+
+            if (part1)
+                Console.Write("Dots remaining: " + locations.Count());
+            else            
+                PrintGrid(locations);                            
+        }
+
+        private static List<Tuple<int, int>> MakeFold(List<Tuple<int,int>> locations, string instruction)
+        {
+            bool xFold = instruction.Contains('x');
+            var val = int.Parse(Regex.Split(instruction, @"\D+")[1]);
+            var newLocations = locations;
+
+            if (xFold)
+                locations.RemoveAll(l => l.Item1 == val);
+            else
+                locations.RemoveAll(l => l.Item2 == val);
+
+            var movingCandidates = new List<Tuple<int, int>>();
+
+            if (xFold)
+                movingCandidates.AddRange(locations.Where(l => l.Item1 > val));
+            else
+                movingCandidates.AddRange(locations.Where(l => l.Item2 > val));
+
+            for(int i = 0; i < movingCandidates.Count(); i++)
+            {                
+                var x = xFold ? 0 : movingCandidates[i].Item1;
+                var y = xFold ? movingCandidates[i].Item2 : 0;
+
+                if (xFold)                
+                    x = val - (movingCandidates[i].Item1 - val);                
+                else                
+                    y = val - (movingCandidates[i].Item2 - val);
+
+                locations.Remove(movingCandidates[i]);
+                locations.Add(new Tuple<int, int>(x, y));
+            }
+
+            return locations.Distinct().ToList();
+        }
+
+        private static void PrintGrid(List<Tuple<int,int>> grid)
+        {
+            var maxX = grid.OrderByDescending(i => i.Item1).First().Item1;
+            var maxY = grid.OrderByDescending(i => i.Item2).First().Item2;
+
+            var output = "";
+
+            for (int y = 0; y <= maxY; y++)
+            {
+                for (int x = 0; x <= maxX; x++)
+                    output += grid.Any(i => i.Item1 == x && i.Item2 == y) ? "#" : ".";
+                output += "\n";
+            }                                  
 
             Console.Write(output);
         }
