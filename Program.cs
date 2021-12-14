@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace AdventOfCode2021
@@ -59,6 +60,9 @@ namespace AdventOfCode2021
                     break;
                 case "13":
                     RunDay13();
+                    break;
+                case "14":
+                    RunDay14();
                     break;
             }
         }
@@ -1215,13 +1219,6 @@ namespace AdventOfCode2021
             var routes = GetCaveRoutes(nodes, part1);
 
             Console.Write("Path Count = " + routes.Count());
-
-            //foreach(LinkedList<Node> route in routes)
-            //{
-            //    PrintPath(route);
-            //    //for (int i = 0; i < route.Count(); i++)
-
-            //}
         }
      
         private static Dictionary<Node, List<Node>> GetCaveNodes(List<string> lines)
@@ -1371,9 +1368,7 @@ namespace AdventOfCode2021
                 output += visited.ElementAt(i).Identifier + " -> ";
 
             Console.Write(output);
-        }
-
-        #endregion
+        }        
 
         private static void RunDay13()
         {
@@ -1473,6 +1468,98 @@ namespace AdventOfCode2021
             }                                  
 
             Console.Write(output);
+        }
+
+        #endregion
+
+        private static void RunDay14()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool part1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    part1 = false;
+                    break;
+            }
+
+            var lines = ReadFileLineByLine(_folder + "Adv14.txt");
+
+            Dictionary<string, string> pairInsertions = new Dictionary<string, string>();
+
+            for (int i = 2; i < lines.Count(); i++)
+            {
+                var sections = lines[i].Split(" -> ");
+                pairInsertions.Add(sections[0], sections[0][0].ToString() + sections[1] + sections[0][1].ToString());
+            }
+
+            int stepCount = 10;
+
+            if (!part1)
+                stepCount = 40;
+
+            Dictionary<string, long> pairCount = GetInitialPairCount(pairInsertions, lines[0]);
+
+            for (int i = 0; i < stepCount; i++)
+                pairCount = RunPolymerStep(pairCount, pairInsertions);
+
+            var charCount = GetCharCount(pairCount, lines[0][lines[0].Length - 1]);
+
+            foreach (var kvp in charCount)            
+                Console.Write(kvp.Key + ": " + kvp.Value + "\n");            
+
+            Console.Write("Answer: " + (charCount[charCount.Keys.Last()] - charCount[charCount.Keys.First()]).ToString());
+        }
+
+        private static Dictionary<string, long> GetInitialPairCount(Dictionary<string, string> list, string line)
+        {
+            var initialPairs = new Dictionary<string, long>();
+
+            foreach (var kvp in list)
+                initialPairs.Add(kvp.Key, 0);
+
+            for (int i = 0; i < line.Length - 1; i++)
+                initialPairs[line[i].ToString() + line[i + 1].ToString()]++;            
+
+            return initialPairs;
+        }
+
+        private static Dictionary<string, long> RunPolymerStep(Dictionary<string, long> pairCount, Dictionary<string,string> pairInsertions)
+        {
+            var origCount = new Dictionary<string,long>(pairCount);
+
+            foreach(var kvp in origCount)
+            {
+                if (kvp.Value == 0)
+                    continue;
+
+                var newPair1 = pairInsertions[kvp.Key].Substring(0,2);
+                var newPair2 = pairInsertions[kvp.Key].Substring(1,2);
+
+                pairCount[newPair1] += kvp.Value;
+                pairCount[newPair2] += kvp.Value;
+                pairCount[kvp.Key] -= kvp.Value;
+            }
+
+
+            return pairCount;
+        }
+
+        private static Dictionary<char, long> GetCharCount(Dictionary<string,long> list, char lastChar)
+        {
+            var charCount = new Dictionary<char, long>();
+
+            foreach (var kvp in list)            
+                if (charCount.ContainsKey(kvp.Key[0]))
+                    charCount[kvp.Key[0]] += kvp.Value;
+                else
+                    charCount.Add(kvp.Key[0], kvp.Value);
+
+            charCount[lastChar]++;
+
+            return charCount.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
         }
     }
 
