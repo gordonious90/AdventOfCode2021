@@ -11,6 +11,7 @@ namespace AdventOfCode2021
     {
         private static string _folder;
         private static List<Stack<Node>> _possiblePaths;
+        private static Dictionary<CaveVertex, CaveVertex> outerParents;
 
         static void Main(string[] args)
         {
@@ -63,6 +64,9 @@ namespace AdventOfCode2021
                     break;
                 case "14":
                     RunDay14();
+                    break;
+                case "15":
+                    RunDay15();
                     break;
             }
         }
@@ -1469,9 +1473,7 @@ namespace AdventOfCode2021
 
             Console.Write(output);
         }
-
-        #endregion
-
+        
         private static void RunDay14()
         {
             Console.WriteLine("Part 1 or Part 2?");
@@ -1561,6 +1563,216 @@ namespace AdventOfCode2021
 
             return charCount.OrderBy(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
         }
+
+        #endregion
+
+        private static void RunDay15()
+        {
+            Console.WriteLine("Part 1 or Part 2?");
+
+            bool part1 = true;
+
+            switch (Console.ReadLine())
+            {
+                case "2":
+                    part1 = false;
+                    break;
+            }
+
+            var lines = ReadFileLineByLine(_folder + "Adv15.txt");
+            
+            int repeats = part1 ? 1 : 5;
+            var maxX = lines[0].Length * repeats - 1;
+            var maxY = lines.Count() * repeats - 1;
+
+            var graph = GetCaveMap(lines, repeats);
+            var startNode = graph.AdjList.First(n => n.Key.X == 0 && n.Key.Y == 0);
+            var endNode = graph.AdjList.First(n => n.Key.X == maxX && n.Key.Y == maxY);
+
+            PrintShortestPath(graph, startNode.Key, endNode.Key);       
+        }
+
+        private static CaveGraph GetCaveMap(List<string> lines, int repeat)
+        {
+            var graph = new CaveGraph();
+
+            var vertex = new List<CaveVertex>();
+
+            int counter = 0;
+
+            var maxY = lines.Count;
+            var maxX = lines[0].Count();                          
+
+            for (int yMaster = 0; yMaster < repeat; yMaster++)
+            {
+                for (int xMaster = 0; xMaster < repeat; xMaster++)
+                {
+                    for (int y = 0; y < lines.Count(); y++)
+                    {
+                        for (int x = 0; x < lines[y].Length; x++)
+                        {
+                            var weight = int.Parse(lines[y][x].ToString()) + yMaster + xMaster;
+
+                            while (weight > 9)
+                                weight = weight - 9;
+
+                            vertex.Add(new CaveVertex(counter, x + (maxX * xMaster), y + (maxY * yMaster), weight));
+                            counter++;
+                        }
+                    }
+                }
+            }
+
+            if (repeat > 1)
+            {
+                maxX = maxX * repeat - 1;
+                maxY = maxY * repeat - 1;
+            }
+
+            foreach (var vert in vertex)
+            {
+                var startX = vert.X > 0 ? vert.X - 1 : 0;
+                var endX = vert.X < maxX ? vert.X + 1 : maxX;
+                var startY = vert.Y > 0 ? vert.Y - 1 : 0;
+                var endY = vert.Y < maxY ? vert.Y + 1 : maxY;
+
+                for (int y = startY; y <= endY; y++)
+                {
+                    for (int x = startX; x <= endX; x++)
+                    {
+                        if (x == vert.X && y == vert.Y)
+                            continue;
+
+                        if (x != vert.X && y != vert.Y)
+                            continue;
+
+                        var match = vertex.First(v => v.X == x && v.Y == y);
+                        graph.AddEdgeDirected(vert, match, match.Weight + vert.Weight);
+                    }
+                }                
+            }
+
+            return graph;
+        }
+
+        private static Dictionary<CaveVertex, int> DijkstraGraph(CaveGraph graph, CaveVertex source)
+        {
+            var map = new Dictionary<CaveVertex, CaveNode>();
+            // set list capacity to number of vertices to keep Add() at O(1)
+            // For details see:
+            // https://docs.microsoft.com/en-us/dotnet/api/system.collections.generic.list-1.add?view=netframework-4.8#remarks
+            var pq = new List<CaveNode>(graph.AdjList.Keys.Count);
+            var weights = new Dictionary<CaveVertex, int>();
+            var parents = new Dictionary<CaveVertex, CaveVertex>();
+            var dq = new HashSet<CaveVertex>();
+
+            foreach (var v in graph.AdjList.Keys)
+            {
+                var node = new CaveNode(v, 0);
+                if (v.Key == source.Key)
+                {
+                    map.Add(v, node);
+                    // O(1) unless capacity is exceeded
+                    pq.Add(node);
+                }
+                else
+                {
+                    node.Priority = int.MaxValue;
+                    map.Add(v, node);
+                    // O(1) unless capacity is exceeded
+                    pq.Add(node);
+                }
+            }
+
+            weights.Add(source, 0);
+            parents.Add(source, null);
+
+            while (pq.Count > 0)
+            {
+                // sort by priority. O(n log n)
+                pq.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+
+                var temp = pq[0];
+                // O(n)
+                pq.RemoveAt(0);
+                var current = temp.V;
+                var weight = temp.Priority;
+
+                dq.Add(current);
+
+                // update shortest dist of current vertex from source
+                if (!weights.TryAdd(current, weight))
+                {
+                    weights[current] = weight;
+                }
+
+                foreach (var adjEdge in graph.AdjList[current])
+                {
+                    var adj = adjEdge.Source.Key == current.Key
+                        ? adjEdge.Destination
+                        : adjEdge.Source;
+
+                    // skip already dequeued vertices
+                    if (dq.Contains(adj))
+                    {
+                        continue;
+                    }
+
+                    int calcWeight = weights[current] + adjEdge.PathWeight;
+                    var adjNode = map[adj];
+                    int adjWeight = adjNode.Priority;
+
+                    // is tense?
+                    if (calcWeight < adjWeight)
+                    {
+                        // relax
+                        map[adj].Priority = calcWeight;
+                        // potentially O(n)
+                        pq.Find(n => n == adjNode).Priority = calcWeight;
+
+                        if (!parents.TryAdd(adj, current))
+                        {
+                            parents[adj] = current;
+                        }
+                    }
+                }
+
+            }
+
+            // only here for PrintShortestPaths() & PrintShortestPath() - not recommended
+            outerParents = parents;
+
+            return weights;
+        }
+
+        public static void PrintShortestPath(CaveGraph graph, CaveVertex source, CaveVertex destination)
+        {
+            var path = DijkstraGraph(graph, source);
+
+            bool end = false;
+
+            var vertex = destination;
+            var parents = outerParents;
+
+            int weightCounter = 0;
+            int lastEntry = 0;
+
+            while (!end)
+            {
+                if (vertex == null || !parents.ContainsKey(vertex))               
+                    break;                
+
+                Console.WriteLine($" {vertex.X + "," + vertex.Y} Weight: {vertex.Weight} ({path[vertex]})");
+
+                weightCounter += vertex.Weight;
+                lastEntry = vertex.Weight;
+                vertex = parents[vertex];
+            }
+
+            weightCounter -= lastEntry;
+
+            Console.WriteLine("Weight: " + weightCounter);
+        }
     }
 
     public class VentLine
@@ -1617,5 +1829,88 @@ namespace AdventOfCode2021
         Small,
         Start,
         End
+    }
+
+    public class CaveNode
+    {
+        public CaveNode(CaveVertex v, int priority)
+        {
+            V = v;
+            Priority = priority;
+        }
+
+        public CaveVertex V;
+        public int Priority;
+
+        public int X;
+        public int Y;
+        public int Weight;
+    }
+
+    public class CaveVertex
+    {
+        public CaveVertex(int key, int x, int y, int weight)
+        {
+            Key = key;
+            X = x;
+            Y = y;
+            Weight = weight;
+        }
+        public int Key;
+
+        public int X;
+        public int Y;
+        public int Weight;
+    }
+
+    public class CaveEdge
+    {
+        public CaveEdge(CaveVertex source, CaveVertex destination, int weight)
+        {
+            Source = source;
+            Destination = destination;
+            PathWeight = weight;
+        }
+
+        public int PathWeight;
+        public CaveVertex Source;
+        public CaveVertex Destination;
+    }
+
+    public class CaveGraph
+    {
+        private Dictionary<CaveVertex, List<CaveEdge>> adjList;
+
+        public CaveGraph()
+        {
+            adjList = new Dictionary<CaveVertex, List<CaveEdge>>();
+        }
+
+        public Dictionary<CaveVertex, List<CaveEdge>> AdjList
+        {
+            get
+            {
+                return adjList;
+            }
+        }
+
+        public void AddEdgeDirected(CaveVertex source, CaveVertex destination, int weight)
+        {
+            if (adjList.ContainsKey(source))
+            {
+                adjList[source].Add(new CaveEdge(source, destination, weight));
+            }
+            else
+            {
+                adjList.Add(source, new List<CaveEdge> { new CaveEdge(source, destination, weight) });
+            }
+
+            if (!adjList.ContainsKey(destination))
+            {
+                adjList.Add(destination, new List<CaveEdge>());
+            }
+        }
+
+        
     }
 }
